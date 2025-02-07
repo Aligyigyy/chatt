@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محادثة مباشرة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #181818;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: 0.3s;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: #bbb;
+        }
+
+        button {
+            background: #27ae60;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #2ecc71;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #222;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            height: 250px;
+        }
+
+        .users-area {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 5px;
+            text-align: left;
+        }
+
+        .users-area ul, #messages {
+            list-style: none;
+            padding: 0;
+        }
+
+        #messages li {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            text-align: left;
+        }
+
+        .input-area {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="join-container" class="container">
+        <h1>💬 غرفة المحادثة</h1>
+        <input id="username" type="text" placeholder="أدخل اسمك..." required>
+        <input id="room" type="text" placeholder="أدخل اسم الغرفة..." required>
+        <button onclick="joinChat()">دخول</button>
+    </div>
+
+    <div id="chat-container" class="container hidden chat-container">
+        <div class="header">
+            <h2>📢 الغرفة: <span id="room-name"></span></h2>
+            <button onclick="leaveChat()" style="background:#e74c3c;">🚪 خروج</button>
+        </div>
+        <div class="chat-area">
+            <ul id="messages"></ul>
+        </div>
+        <div class="users-area">
+            <h3>👥 المتصلون</h3>
+            <ul id="users"></ul>
+        </div>
+        <div class="input-area">
+            <input id="message" type="text" placeholder="اكتب رسالتك...">
+            <button onclick="sendMessage()">📩 إرسال</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let username, room;
+
+        function joinChat() {
+            username = document.getElementById("username").value.trim();
+            room = document.getElementById("room").value.trim();
+            
+            if (!username || !room) {
+                alert("يرجى إدخال اسم المستخدم واسم الغرفة!");
+                return;
+            }
+
+            document.getElementById("join-container").classList.add("hidden");
+            document.getElementById("chat-container").classList.remove("hidden");
+            document.getElementById("room-name").textContent = room;
+
+            socket.emit("joinRoom", { username, room });
+        }
+
+        function sendMessage() {
+            const message = document.getElementById("message").value.trim();
+            if (message) {
+                socket.emit("chatMessage", message);
+                document.getElementById("message").value = "";
+            }
+        }
+
+        function leaveChat() {
+            window.location.reload();
+        }
+
+        socket.on("message", ({ user, text }) => {
+            const li = document.createElement("li");
+            li.innerHTML = `<strong>${user}:</strong> ${text}`;
+            document.getElementById("messages").appendChild(li);
+        });
+
+        socket.on("roomUsers", ({ users }) => {
+            document.getElementById("users").innerHTML = users.map(u => `<li>${u.username}</li>`).join("");
+        });
+    </script>
+</body>
+</html>
+
